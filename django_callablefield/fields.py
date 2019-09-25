@@ -46,11 +46,8 @@ class ABField(models.Field):
     def get_internal_type(self):
         return 'CharField'
 
-    def from_db_value(self, value):
-        print(f'from_db_value: {value}')
-        # if value is None:
-        #     return value
-        return self._parse_ab(value)
+    def from_db_value(self, value, expression, connection):
+        return self.to_python(value)
 
     def to_python(self, value):
         print(f'to_python: {value}')
@@ -62,22 +59,30 @@ class ABField(models.Field):
 
     def get_prep_value(self, value):
         print(f'get_prep_value: {value}')
-        print(f'value is A: {value is A}')
-        print(f'value is B: {value is B}')
-        print(f'value == A: {value == A}')
-        print(f'value == B: {value == B}')
         if value is A:
             return 'a'
         elif value is B:
             return 'b'
-        elif isinstance(value, str):
-            return value
+        # elif isinstance(value, str):
+        #     return value
         raise Exception(f'in get_prep_value for value: {value}')
 
     def value_to_string(self, obj):
         value = self.value_from_object(obj)
         print(f'value_to_string: {value}')
         return self.get_prep_value(value)
+
+    def clean(self, value, model_instance):
+        """
+        Convert the value's type and run validation. Validation errors
+        from to_python() and validate() are propagated. Return the correct
+        value if no error is raised.
+        """
+        # Use the str value rather than the class for validation.
+        value = self.get_prep_value(value)
+        self.validate(value, model_instance)
+        self.run_validators(value)
+        return value
 
     def formfield(self, **kwargs):
         formfield = super().formfield(**kwargs)
