@@ -14,11 +14,11 @@ A = Fake('A', 'a')
 B = Fake('B', 'b')
 
 
-hook = {'a': A, 'b': B}
+abhook = {'a': A, 'b': B}
 
 
 class ABModel(models.Model):
-    ab = HookField(hook=hook)
+    ab = HookField(hook=abhook, key_field='key')
 
     def __str__(self):
-        return f'{self.ab!r}'
+        return f'ABModel(ab={self.ab!r})'
