@@ -1,5 +1,24 @@
 from django.db import models
-from .fields import ABField
+from .fields import HookField
+
+
+class Fake:
+    def __init__(self, repr, key):
+        self.repr = repr
+        self.key = key
+    def __repr__(self):
+        return f'Fake({self.repr})'
+
+
+A = Fake('A', 'a')
+B = Fake('B', 'b')
+
+
+hook = {'a': A, 'b': B}
+
 
 class ABModel(models.Model):
-    ab = ABField()
+    ab = HookField(hook=hook)
+
+    def __str__(self):
+        return f'{self.ab!r}'
