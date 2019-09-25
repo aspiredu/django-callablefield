@@ -19,29 +19,27 @@ A = Fake('A')
 B = Fake('B')
 
 
+ABFIELD_CONFIG = [
+    (A, 'a', _('A')),
+    (B, 'b', _('B')),
+]
+
+
 class ABField(models.Field):
     empty_strings_allowed = False
 
     def __init__(self, *args, **kwargs):
         kwargs['max_length'] = 1
-        kwargs['choices'] = [
-            ('a', _('A')),
-            ('b', _('B')),
-        ]
         super().__init__(*args, **kwargs)
+        self.choices = [(key, name) for _, key, name in ABFIELD_CONFIG]
+        self.refs = {val: key for val, key, _ in ABFIELD_CONFIG}
+        self.derefs = {key: val for val, key, _ in ABFIELD_CONFIG}
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
         del kwargs["max_length"]
         del kwargs["choices"]
         return name, path, args, kwargs
-
-    def _parse_ab(self, value):
-        if value == 'a':
-            return A
-        elif value == 'b':
-            return B
-        raise ValidationError('Invalid value for parsing.')
 
     def get_internal_type(self):
         return 'CharField'
@@ -50,34 +48,22 @@ class ABField(models.Field):
         return self.to_python(value)
 
     def to_python(self, value):
-        print(f'to_python: {value}')
-        if value in [A, B]:
-            return value
-        # elif value is None:
-        #     return value
-        return self._parse_ab(value)
+        if value in self.derefs:
+            return self.derefs[value]
+        raise ValidationError('Invalid value for parsing.')
 
     def get_prep_value(self, value):
-        print(f'get_prep_value: {value}')
-        if value is A:
-            return 'a'
-        elif value is B:
-            return 'b'
-        # elif isinstance(value, str):
-        #     return value
-        raise Exception(f'in get_prep_value for value: {value}')
+        if isinstance(value, str):
+            return value
+        if value in self.refs:
+            return self.refs[value]
+        raise Exception(f'Invalid value: {value!r}')
 
-    def value_to_string(self, obj):
-        value = self.value_from_object(obj)
-        print(f'value_to_string: {value}')
-        return self.get_prep_value(value)
+    # def value_to_string(self, obj):
+    #     value = self.value_from_object(obj)
+    #     return self.get_prep_value(value)
 
     def clean(self, value, model_instance):
-        """
-        Convert the value's type and run validation. Validation errors
-        from to_python() and validate() are propagated. Return the correct
-        value if no error is raised.
-        """
         # Use the str value rather than the class for validation.
         value = self.get_prep_value(value)
         self.validate(value, model_instance)
