@@ -1,3 +1,4 @@
+from typing import Any, List, Tuple
 from django.db import models
 
 
@@ -6,9 +7,9 @@ class Hook:
 
     def __init__(self):
         self.__values: Dict[str, Any] = {}
-        self.__labels: Dict[str, Any] = {}
+        self.__labels: Dict[str, str] = {}
 
-    def register(self, key: str, value, *, label=None):
+    def register(self, key: str, value, *, label: Optional[str] = None):
         """Register a new hook value for the given key.
 
         Optionally include a label to use as the representation in forms.
@@ -16,17 +17,17 @@ class Hook:
         self.__values[key] = value
         self.__labels[key] = label or key
 
-    def identify(self, value):
+    def identify(self, value: Any) -> str:
         if value in self.__values.values():
             return next(k for k, v in self.__values.items())
         raise ValueError(f"{value!r} could not be identified")
 
-    def lookup(self, key):
+    def lookup(self, key: str) -> Any:
         if key in self.__values:
             return self.__values[key]
         raise ValueError(f'invalid key: {key!r}')
 
-    def choices(self):
+    def choices(self) -> List[Tuple[str, str]]:
         return list(self.__labels.items())
 
 
@@ -56,9 +57,10 @@ class HookField(models.CharField):
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
-        del kwargs['choices']
+        del kwargs['choices']  # Choices are dynamic
         return name, path, args, kwargs
 
     def formfield(self, *args, **kwargs):
+        # Get the choices immediately before getting the form field
         self.choices = self.hook.choices()
         return super().formfield(*args, **kwargs)
