@@ -56,6 +56,7 @@ class HookField(models.CharField):
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
+        del kwargs['choices']
         return name, path, args, kwargs
 
     def formfield(self, *args, **kwargs):
